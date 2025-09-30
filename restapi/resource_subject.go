@@ -1,81 +1,75 @@
 package restapi
 
 import (
-  "github.com/hashicorp/terraform/helper/schema"
-  "log"
+	"log"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceSubject() *schema.Resource {
-  return &schema.Resource{
-    Create: resourceSubjectCreate,
-    Read:   resourceSubjectRead,
-    Update: resourceSubjectUpdate,
-    Delete: resourceSubjectDelete,
+	return &schema.Resource{
+		Create: resourceSubjectCreate,
+		Read:   resourceSubjectRead,
+		Update: resourceSubjectUpdate,
+		Delete: resourceSubjectDelete,
 
-    Schema: map[string]*schema.Schema{
-      "subject": &schema.Schema{
-        Type:     schema.TypeString,
-        Required: true,
-      },
-      "schema": &schema.Schema{
-        Type:     schema.TypeString,
-        Required: true,
-      },
-    },
-  }
+		Schema: map[string]*schema.Schema{
+			"subject": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"schema": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+	}
 }
 
 func resourceSubjectCreate(d *schema.ResourceData, m interface{}) error {
-  client, err := make_client(d, m)
+	client, err := makeClient(d, m)
+	if err != nil {
+		return err
+	}
 
-  if err != nil { return err }
+	log.Printf("Create subject '%v'.", client)
 
-  log.Printf("Create subject '%s'.", client)
+	if err = client.createSubject(); err != nil {
+		return err
+	}
 
-  err = client.create_subject()
-
-  if err != nil {
-    return err
-  }
-
-  d.SetId(client.subject)
-  return nil
+	d.SetId(client.subject)
+	return nil
 }
 
 func resourceSubjectRead(d *schema.ResourceData, m interface{}) error {
-  return nil
+	return nil
 }
 
 func resourceSubjectUpdate(d *schema.ResourceData, m interface{}) error {
-  client, err := make_client(d, m)
+	client, err := makeClient(d, m)
+	if err != nil {
+		return err
+	}
 
-  if err != nil { return err }
+	log.Printf("Update subject '%v'.", client)
 
-  log.Printf("Update subject '%s'.", client)
-
-  err = client.create_subject()
-
-  if err != nil {
-    return err
-  }
-
-  return nil
+	return client.createSubject()
 }
 
 func resourceSubjectDelete(d *schema.ResourceData, m interface{}) error {
-  client, err := make_client(d, m)
+	client, err := makeClient(d, m)
+	if err != nil {
+		return err
+	}
 
-  if err != nil { return err }
+	log.Printf("Delete subject '%v'.", client)
 
-  log.Printf("Delete subject '%s'.", client)
+	if err = client.deleteSubject(); err != nil {
+		return err
+	}
 
-  err = client.delete_subject()
+	d.SetId("")
 
-  if err != nil {
-    return err
-  }
-
-  d.SetId("")
-
-  return nil
+	return nil
 }
