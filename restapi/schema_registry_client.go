@@ -1,90 +1,84 @@
 package restapi
 
 import (
-  "encoding/json"
-  "bytes"
-  "io/ioutil"
-  "net/http"
-  "fmt"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 )
 
-type schema_registry_client struct {
-  http_client           *http.Client
-  create_uri            string
-  update_uri            string
-  read_uri              string
-  delete_uri            string
-  subject               string
-  schema                string
+type schemaRegistryClient struct {
+	httpClient *http.Client
+	createURI  string
+	updateURI  string
+	readURI    string
+	deleteURI  string
+	subject    string
+	schema     string
 }
 
-func NewSchemaRegistryClient(uri string, subject string, schema string) (*schema_registry_client, error) {
-  client := schema_registry_client{
-    create_uri: uri + "/subjects/" + subject + "/versions",
-    update_uri: uri + "/subjects/" + subject + "/versions",
-    read_uri: uri + "/subjects/" + subject + "/versions",
-    delete_uri: uri + "/subjects/" + subject,
-    subject: subject,
-    schema: schema,
-    http_client: &http.Client{},
-  }
+const subjectsString = "/subjects/"
+const versionsString = "/versions/"
 
-  return &client, nil
+func NewSchemaRegistryClient(uri string, subject string, schema string) (*schemaRegistryClient, error) {
+	client := schemaRegistryClient{
+		createURI:  uri + subjectsString + subject + versionsString,
+		updateURI:  uri + subjectsString + subject + versionsString,
+		readURI:    uri + subjectsString + subject + versionsString,
+		deleteURI:  uri + subjectsString + subject,
+		subject:    subject,
+		schema:     schema,
+		httpClient: &http.Client{},
+	}
+
+	return &client, nil
 }
 
-func (client schema_registry_client) create_subject() error {
-  jsonData := map[string]string{"schema": client.schema}
-  jsonValue, err := json.Marshal(jsonData)
+func (client schemaRegistryClient) createSubject() error {
+	jsonData := map[string]string{"schema": client.schema}
+	jsonValue, err := json.Marshal(jsonData)
+	if err != nil {
+		return err
+	}
 
-  if err != nil {
-    return err
-  }
+	response, err := http.Post(client.createURI, "application/vnd.schemaregistry.v1+json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return err
+	}
 
-  response, err := http.Post(client.create_uri, "application/vnd.schemaregistry.v1+json", bytes.NewBuffer(jsonValue))
+	data, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
 
-  if err != nil {
-    return err
-  }
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("response code is %d: %s", response.StatusCode, data)
+	}
 
-  data, err := ioutil.ReadAll(response.Body)
-
-  if err != nil {
-    return err
-  }
-
-  if response.StatusCode != http.StatusOK {
-    err = fmt.Errorf("response code is %d: %s", response.StatusCode, data)
-    return err
-  }
-
-  return nil
+	return nil
 }
 
-func (client schema_registry_client) delete_subject() error {
-  request, err := http.NewRequest("DELETE", client.delete_uri, nil)
+func (client schemaRegistryClient) deleteSubject() error {
+	request, err := http.NewRequest(http.MethodDelete, client.deleteURI, nil)
+	if err != nil {
+		return err
+	}
 
-  if err != nil {
-    return err
-  }
+	response, err := client.httpClient.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
 
-  response, err := client.http_client.Do(request)
+	data, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
 
-  if err != nil {
-    return err
-  }
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("response code is %d: %s", response.StatusCode, data)
+	}
 
-  data, err := ioutil.ReadAll(response.Body)
-
-  if err != nil {
-    return err
-  }
-
-  if response.StatusCode != http.StatusOK {
-    err = fmt.Errorf("response code is %d: %s", response.StatusCode, data)
-    return err
-  }
-
-  defer response.Body.Close()
-
-  return err
+	return nil
 }
