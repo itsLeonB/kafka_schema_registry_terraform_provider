@@ -46,6 +46,7 @@ func (client schemaRegistryClient) createSubject() error {
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
 	data, err := io.ReadAll(response.Body)
 	if err != nil {

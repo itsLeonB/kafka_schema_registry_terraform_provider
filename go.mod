@@ -1,4 +1,4 @@
-module github.com/itsLeonB/kafka_schema_registry_terraform_provider
+module github.com/itsLeonB/terraform-provider-kafka-schema-registry
 
 go 1.25
 
